@@ -27,9 +27,10 @@ int rfcomm_client(void)
 {
     struct sockaddr_rc addr = { 0 };
     int s, status;
-    uint8_t port = 1;
+    uint8_t port = 11;
     char *dest = {0}; //"C0:18:85:DC:BA:61";
     int res;
+    char buf[1024] = {0};
 
     printf("Start scanning.\n");
     dest = (char*)malloc(18 * sizeof(char));
@@ -40,8 +41,8 @@ int rfcomm_client(void)
 
     // set the connection parameters (who to connect to)
     addr.rc_family = AF_BLUETOOTH;
-    //addr.rc_channel = port;
-    res = dynamic_bind_rc(s, &addr, &port);
+    addr.rc_channel = port;
+    //res = dynamic_bind_rc(s, &addr, &port);
     printf("dynamic_bind returns %d for port %d\n", res, port);   
     str2ba( dest, &addr.rc_bdaddr );
 
@@ -55,6 +56,9 @@ int rfcomm_client(void)
         status = write(s, "hello!", 6);
         printf("Sended.\n");
     }
+    status = read(s, buf, 1023);
+    buf[1023] = 0;
+    printf("Received: \"%s\".\n", buf);
 
     if( status < 0 ) perror("uh oh");
 
