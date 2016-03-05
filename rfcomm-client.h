@@ -4,3 +4,5 @@
 int dynamic_bind_rc(int sock, struct sockaddr_rc *sockaddr, uint8_t *port);
 
 int rfcomm_client(void);
+
+char* hciscan(char *dest_addr);
