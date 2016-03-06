@@ -8,6 +8,8 @@
 #include <sys/ioctl.h>
 #include "rfcomm-server.h"
 
+#define STDIN 0 // for selecting stdin input in select()
+
 int dynamic_bind_rc(int sock, struct sockaddr_rc *sockaddr)
 {
     int err;
@@ -129,8 +131,8 @@ int read_connection(int i)
 	int close_conn = 0;
 	// Receive all incoming data on this socket
 	// before we loop back and call select again.
-	do
-	{
+	//do
+	//{
 		// Receive data on this connection until the
 		// recv fails with EWOULDBLOCK.  If any other
 		// failure occurs, we will close the
@@ -144,7 +146,7 @@ int read_connection(int i)
 				perror("  recv() failed");
 				close_conn = 1;
 			}
-			break;
+			//break;
 		}
 		// Check to see if the connection has been
 		// closed by the client
@@ -152,20 +154,13 @@ int read_connection(int i)
 		{
 			printf("  Connection closed\n");
 			close_conn = 1;
-			break;
+			//break;
 		}
 		// Data was received
 		int len = rc_recv;
 		printf("  %d bytes received \"%s\"\n", len, buf);
-		// Echo the data back to the client
-		int rc_send = send(i, buf, len, 0);
-		if (rc_send < 0)
-		{
-			perror("  send() failed");
-			close_conn = 1;
-			break;
-		}
-	} while (1);
+
+	//} while (1);
 
 	return close_conn;
 }
@@ -195,6 +190,7 @@ int loop_descriptors(int rc_select, int *max_sd, fd_set *master_set, fd_set *wor
 	int i;
 	for (i=0; i <= *max_sd  &&  desc_ready > 0; ++i)
 	{
+		printf("Checkin FD_ISSET %d socket.\n", i);
 		// Check to see if this descriptor is ready.
 		if (FD_ISSET(i, working_set))
 		{
@@ -204,6 +200,39 @@ int loop_descriptors(int rc_select, int *max_sd, fd_set *master_set, fd_set *wor
 			{
 				printf("  Listening socket is readable\n");
 				end_server = process_connection(max_sd, master_set, s);
+			}
+			// Check stdin input.
+			else if(i == STDIN)
+			{
+				char buf[1024] = {0};
+				// Read data from stdin using fgets.
+				fgets(buf, sizeof(buf), stdin);
+				// Remove trailing newline character from the input buffer if needed.
+				int len = strlen(buf) - 1;
+				if (buf[len] == '\n') buf[len] = '\0';
+
+				printf("'%s' was read from stdin.\n", buf);
+				// Echo the data back to the client
+				int j;
+				for (j=0; j <= *max_sd; ++j)
+				{
+					// Check to see if this descriptor is ready.
+					if (FD_ISSET(j, master_set))
+					{
+						// Send in all nonlistenig sockets.
+						if ( j > 0 && j != s)
+						{
+							int rc_send = send(j, buf, len, 0);
+							if (rc_send < 0)
+							{
+								perror("  send() failed");
+								//close_conn = 1;
+								break;
+							}
+							printf("Sended \"%s\" in %d socket\n", buf, j);
+						}
+					}
+				}
 			}
 			// This is not the listening socket, therefore an
 			// existing connection must be readable
@@ -232,6 +261,8 @@ void accept_connection(int s)
 	FD_ZERO(&master_set);
 	max_sd = s;
 	FD_SET(s, &master_set);
+	// Read from STDIN also.
+	FD_SET(STDIN, &master_set);
 
 	int end_server = 0;
 
