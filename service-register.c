@@ -1,32 +1,29 @@
+#include <stdlib.h> // for exit(EXIT_FAILURE);
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
-#include "rfcomm-register.h"
 
-sdp_session_t *register_service()
+#include "service-register.h"
+
+sdp_session_t *service_register(sdp_session_t *session, uuid_t *service_uuid, uint8_t rfcomm_channel)
 {
-    //uint32_t svc_uuid_int[] = { 0x0000abcd,0x00001000,0x80000080,0x5fdb34fb };
-    uint32_t svc_uuid_int[] = { 0xcdab0000,0x00100000,0x80000080,0xfb349b5f };
-    uint8_t rfcomm_channel = 11;
+    const char *service_name = "Service name";
+    const char *service_dsc = "Service description";
+    const char *service_prov = "Service provider";
 
-    const char *service_name = "Remote Host";
-    const char *service_dsc = "What the remote should be connecting to.";
-    const char *service_prov = "Your mother";
-
-    uuid_t root_uuid, l2cap_uuid, rfcomm_uuid, svc_uuid;
+    uuid_t root_uuid, l2cap_uuid, rfcomm_uuid;
     sdp_list_t *l2cap_list = 0, 
                *rfcomm_list = 0,
                *root_list = 0,
                *proto_list = 0, 
                *access_proto_list = 0;
-    sdp_data_t *channel = 0, *psm = 0;
+    sdp_data_t *channel = 0; //, *psm = 0;
 
     sdp_record_t *record = sdp_record_alloc();
     // set the general service ID
-    sdp_uuid128_create( &svc_uuid, &svc_uuid_int );
-    sdp_set_service_id( record, svc_uuid );
+    sdp_set_service_id( record, *service_uuid );
     // set the Service class ID
-    sdp_list_t service_class = {NULL, &svc_uuid};
+    sdp_list_t service_class = {NULL, service_uuid};
     sdp_set_service_classes( record, &service_class);
 
     // make the service record publicly browsable
@@ -53,13 +50,14 @@ sdp_session_t *register_service()
     // set the name, provider, and description
     sdp_set_info_attr(record, service_name, service_prov, service_dsc);
 
-    int err = 0;
-    sdp_session_t *session = 0;
-
     // connect to the local SDP server, register the service record, and 
     // disconnect
     session = sdp_connect( BDADDR_ANY, BDADDR_LOCAL, SDP_RETRY_IF_BUSY );
-    err = sdp_record_register(session, record, 0);
+    int err = sdp_record_register(session, record, 0);
+    if (err != 0) {
+		perror("error sdp_record_register");
+		exit(EXIT_FAILURE);
+	}
 
     // cleanup
     //sdp_data_free( channel );

@@ -1,8 +1,17 @@
+/*
+ * main.h
+ *
+ *  Created on: 6 марта 2016 г.
+ *      Author: bakulev
+ */
+
+#ifndef RFCOMM_CLIENT_H_
+#define RFCOMM_CLIENT_H_
+
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 
-int dynamic_bind_rc(int sock, struct sockaddr_rc *sockaddr, uint8_t *port);
+int service_search(bdaddr_t *target, uuid_t *service_uuid);
+int rfcomm_client(bdaddr_t *target, uint8_t port);
 
-int rfcomm_client(void);
-
-char* hciscan(char *dest_addr);
+#endif /* RFCOMM_CLIENT_H_ */
