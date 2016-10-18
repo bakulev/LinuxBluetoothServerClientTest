@@ -17,7 +17,7 @@ int dynamic_bind_rc(int sock, struct sockaddr_rc *sockaddr)
 
     for( port = 1; port <= 31; port++ ) {
         sockaddr->rc_channel = port;
-        err = bind(sock, (struct sockaddr *)sockaddr, sizeof(sockaddr));
+        err = bind(sock, (struct sockaddr *)sockaddr, sizeof(*(sockaddr)));
         if( ! err || errno == EINVAL ) break;
     }
     if( port == 31 ) {
